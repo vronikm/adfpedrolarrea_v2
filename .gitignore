@@ -82,8 +82,9 @@
 
 # Un volcado completo de la base ES la base: cédulas, fechas de nacimiento
 # y datos de contacto de menores. Nunca entra en el repositorio.
-# Las migraciones de ds_core/database/ SI se versionan: son el esquema, no
-# los datos, y por eso la regla apunta a los volcados, no a todo *.sql.
+# Tampoco se versionan las migraciones: el repositorio es público y el
+# esquema se queda fuera de él, igual que cualquier otro archivo de la base.
 /ds_base_temporal/
-digitech_*.sql
-*_dump.sql
+/ds_core/database/
+*.sql
+*.sql.gz
