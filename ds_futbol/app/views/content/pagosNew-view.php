@@ -484,12 +484,13 @@ CSS;
 													<div class="col-6 col-md-4">
 														<label class="form-label" for="pago_valor">Valor pagado</label>
 														<div class="input-group"><span class="input-group-text">$</span>
-														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="pago_valor" name="pago_valor" placeholder="0.00" pattern="^\d+(\.\d{1,2})?$" value="<?php echo $rubro_valor; ?>" <?php echo $disabled; ?> required></div>
+														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="pago_valor" name="pago_valor" data-ds-total="<?php echo $pgE($rubro_valor); ?>" data-ds-saldo="pago_saldo" placeholder="0.00" pattern="^\d+(\.\d{1,2})?$" value="<?php echo $rubro_valor; ?>" <?php echo $disabled; ?> required></div>
 													</div>
 													<div class="col-6 col-md-4">
 														<label class="form-label" for="pago_saldo">Saldo pendiente</label>
 														<div class="input-group"><span class="input-group-text">$</span>
 														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="pago_saldo" name="pago_saldo" placeholder="0.00" value="<?php echo $saldo; ?>" <?php echo $disabled; ?>></div>
+														<?php if ($beca != "S") { ?><div class="form-text">Total: $<?php echo $pgE($rubro_valor); ?></div><?php } ?>
 													</div>
 													<div class="col-12 col-md-4">
 														<label class="form-label" for="pago_formapagoid">Forma de pago</label>
@@ -534,12 +535,13 @@ CSS;
 													<div class="col-6 col-md-4">
 														<label class="form-label" for="inscripcion_pago_valor">Valor pagado</label>
 														<div class="input-group"><span class="input-group-text">$</span>
-														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="inscripcion_pago_valor" name="pago_valor" placeholder="0.00" value="<?php echo $rubro_inscripcion; ?>" <?php echo $disabled; ?> required></div>
+														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="inscripcion_pago_valor" name="pago_valor" data-ds-total="<?php echo $pgE($rubro_inscripcion); ?>" data-ds-saldo="inscripcion_pago_saldo" placeholder="0.00" value="<?php echo $rubro_inscripcion; ?>" <?php echo $disabled; ?> required></div>
 													</div>
 													<div class="col-6 col-md-4">
 														<label class="form-label" for="inscripcion_pago_saldo">Saldo pendiente</label>
 														<div class="input-group"><span class="input-group-text">$</span>
 														<input type="text" inputmode="decimal" class="form-control ds-pg-monto" id="inscripcion_pago_saldo" name="pago_saldo" placeholder="0.00" value="<?php echo $saldo; ?>" <?php echo $disabled; ?>></div>
+														<?php if ($beca != "S") { ?><div class="form-text">Total: $<?php echo $pgE($rubro_inscripcion); ?></div><?php } ?>
 													</div>
 													<div class="col-12 col-md-4">
 														<label class="form-label" for="inscripcion_pago_formapagoid">Forma de pago</label>
@@ -811,6 +813,21 @@ CSS;
 			fecha.addEventListener('change', ponerPeriodo);
 			fecha.addEventListener('input', ponerPeriodo);
 		}
+
+		/* Abono: lo que falta para completar el valor del rubro (pensión o
+		   inscripción) pasa solo a «Saldo pendiente». Sigue siendo
+		   editable a mano. Pagar más que el total deja el saldo en 0. */
+		document.querySelectorAll('input[data-ds-total][data-ds-saldo]').forEach(function (valor) {
+			var total = parseFloat(valor.getAttribute('data-ds-total'));
+			var saldo = document.getElementById(valor.getAttribute('data-ds-saldo'));
+			if (!saldo || isNaN(total)) { return; }
+			valor.addEventListener('input', function () {
+				var texto = valor.value.trim().replace(',', '.');
+				var pagado = texto === '' ? 0 : parseFloat(texto);
+				if (isNaN(pagado)) { return; }
+				saldo.value = Math.max(total - pagado, 0).toFixed(2);
+			});
+		});
 
 		/* En el celular cada pago es una tarjeta: cada dato lleva el
 		   nombre de su columna. */
