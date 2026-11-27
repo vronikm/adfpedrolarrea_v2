@@ -271,6 +271,7 @@
 		.ds-pg-form .form-label { font-weight: 500; margin-bottom: .3rem; }
 		.ds-pg-form input[type="date"] { min-width: 0; }
 		.ds-pg-form .ds-pg-monto { text-align: right; font-variant-numeric: tabular-nums; }
+		.ds-pg-form .form-control[readonly] { background-color: var(--bs-secondary-bg); }
 		.ds-pg-aviso { display: flex; gap: .6rem; align-items: flex-start; }
 		.ds-pg-aviso i { margin-top: .2rem; }
 
@@ -806,7 +807,7 @@ CSS;
 		function ponerPeriodo() {
 			var p = (fecha.value || '').split('-');
 			if (p.length === 3 && meses[parseInt(p[1], 10) - 1]) {
-				periodo.value = meses[parseInt(p[1], 10) - 1] + ' / ' + parseInt(p[0], 10);
+				periodo.value = meses[parseInt(p[1], 10) - 1] + ' / ' + parseInt(p[0], 10); periodo.dispatchEvent(new Event('change'));
 			}
 		}
 		if (fecha && periodo) {
@@ -827,6 +828,80 @@ CSS;
 				if (isNaN(pagado)) { return; }
 				saldo.value = Math.max(total - pagado, 0).toFixed(2);
 			});
+		});
+
+		/* Forma de pago «Justificado» (FJU): el alumno no asiste ese mes y
+		   no paga. Valor y saldo quedan en 0.00 y bloqueados (así el
+		   servidor lo registra como justificado), y el Detalle pide el
+		   motivo con un texto inicial editable. Al volver a otra forma de
+		   pago se repone el valor que corresponde: el del rubro si se
+		   conoce (pensión, inscripción) o el que había antes. */
+		document.querySelectorAll('form.ds-pg-form').forEach(function (form) {
+			var forma   = form.querySelector('[name="pago_formapagoid"]');
+			var valor   = form.querySelector('[name="pago_valor"]');
+			var saldo   = form.querySelector('[name="pago_saldo"]');
+			var detalle = form.querySelector('[name="pago_concepto"]');
+			var periodo = form.querySelector('[name="pago_periodo"]');
+			if (!forma || !valor || !saldo || !detalle || forma.disabled) { return; }
+
+			var justificado = false, textoAuto = '', previo = { valor: '', saldo: '' };
+			var placeholder = detalle.getAttribute('placeholder') || '';
+
+			function textoJustificacion() {
+				var p = periodo ? periodo.value.trim() : '';
+				return 'Justificado: el alumno no asistirá' + (p ? ' en ' + p : '') + '.';
+			}
+			function bloquear(si) {
+				valor.readOnly = si; saldo.readOnly = si;
+				detalle.required = si;
+				detalle.setAttribute('placeholder', si ? 'Motivo de la justificación' : placeholder);
+			}
+			function aplicar() {
+				var ahora = forma.value === 'FJU';
+				if (ahora === justificado) { return; }
+				justificado = ahora;
+				if (ahora) {
+					previo = { valor: valor.value, saldo: saldo.value };
+					valor.value = '0.00';
+					saldo.value = '0.00';
+					if (detalle.value.trim() === '') { textoAuto = textoJustificacion(); detalle.value = textoAuto; }
+				} else {
+					var total = parseFloat(valor.getAttribute('data-ds-total'));
+					if (!isNaN(total)) {
+						valor.value = total.toFixed(2);
+						saldo.value = '0.00';
+					} else {
+						valor.value = previo.valor;
+						saldo.value = previo.saldo;
+					}
+					if (textoAuto !== '' && detalle.value === textoAuto) { detalle.value = ''; }
+					textoAuto = '';
+				}
+				bloquear(ahora);
+			}
+			forma.addEventListener('change', aplicar);
+
+			/* Si cambia el periodo y el texto sigue siendo el propuesto, se
+			   actualiza el mes. */
+			if (periodo) {
+				['input', 'change'].forEach(function (ev) {
+					periodo.addEventListener(ev, function () {
+						if (textoAuto !== '' && detalle.value === textoAuto) {
+							textoAuto = textoJustificacion();
+							detalle.value = textoAuto;
+						}
+					});
+				});
+			}
+
+			/* Limpiar devuelve el formulario a su estado inicial. */
+			form.addEventListener('reset', function () {
+				justificado = false; textoAuto = '';
+				bloquear(false);
+				setTimeout(aplicar, 0);
+			});
+
+			aplicar();
 		});
 
 		/* En el celular cada pago es una tarjeta: cada dato lleva el
