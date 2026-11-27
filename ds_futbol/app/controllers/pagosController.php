@@ -1681,18 +1681,21 @@
 				$class = 'class="text-primary"';
 			}
 
-			if ($rows['transaccion_archivo']!=""){
-					$imagen = media_url('pago', $rows['transaccion_archivo']);
+			/* Como en listarPagosRubro(): enlace sólo si hay comprobante en
+			   el disco; si no, el valor queda como texto. */
+			$urlComprobante = $rows['transaccion_archivo'] != "" ? media_url('pago', $rows['transaccion_archivo']) : '';
+			if (strpos($urlComprobante, 'media.php') !== false){
+				$celdaPago = '<a href="'.$urlComprobante.'" data-bs-toggle="lightbox" data-title="Pago" data-gallery="gallery" title="Ver comprobante"><i class="far fa-image me-1"></i>'.$rows['transaccion_valor'].'</a>';
 			}else{
-				$imagen = ds_recurso('ds_futbol/app/views/dist/img/sinpago.jpg');
+				$celdaPago = $rows['transaccion_valor'];
 			}
-				
+
 			$tabla.='
 				<tr '.$class.'>
 					<td>'.$rows['fila_numero'].'</td>
 					<td>'.$rows['transaccion_fecha'].'</td>
 					<td>'.$rows['transaccion_periodo'].'</td>
-					<td><a href="'.$imagen.'" data-bs-toggle="lightbox" data-title="Pago" data-gallery="gallery">'.$rows['transaccion_valor'].'</a></td>				
+					<td>'.$celdaPago.'</td>
 					<td>'.$rows['transaccion_valorcalculado'].'</td>	
 					<td>'.$this->numeroRecibo($rows['transaccion_recibo'], $rows['transaccion_valor']).'</td>	
 					<td>
