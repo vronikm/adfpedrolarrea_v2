@@ -142,7 +142,9 @@
 	| C:\wamp64\respaldos\adfpedrolarrea_new\2026-11-27_pagosNew\.
 	| Los nombres, ids y valores que viajan al servidor no cambian.
 	*/
-	$pgE = static fn($v) => htmlspecialchars((string)$v, ENT_QUOTES, 'UTF-8');
+	/* Hay textos que ya se guardan escapados (limpiarCadena): se
+	   decodifican antes para no mostrar «&quot;». */
+	$pgE = static fn($v) => htmlspecialchars(html_entity_decode((string)$v, ENT_QUOTES, 'UTF-8'), ENT_QUOTES, 'UTF-8');
 	$esPendiente = ($pendiente === 'Pendiente');
 	$sinPago     = ds_recurso('ds_futbol/app/views/dist/img/sinpago.jpg');
 	$fechaCorta  = static fn($f) => $f ? date('d/m/Y', strtotime($f)) : '';
